@@ -32,10 +32,10 @@ function App() {
 
       setMessages(prev => [...prev, botMsg]);
 
-    } catch (err) {
+    } catch {
       setMessages(prev => [
         ...prev,
-        { role: "assistant", content: "Error connecting to server" }
+        { role: "assistant", content: "Server error" }
       ]);
     }
 
@@ -43,45 +43,73 @@ function App() {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.chatBox}>
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            style={{
-              ...styles.message,
-              alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-              background: msg.role === "user" ? "#DCF8C6" : "#fff"
-            }}
-          >
-            {msg.content}
-          </div>
-        ))}
-      </div>
+    <div style={styles.wrapper}>
+      <div style={styles.chatContainer}>
 
-      <div style={styles.inputArea}>
-        <input
-          style={styles.input}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message"
-        />
-        <button style={styles.button} onClick={handleSend}>
-          Send
-        </button>
+        <div style={styles.header}>
+          WhatsApp AI Assistant
+        </div>
+
+        <div style={styles.chatArea}>
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              style={{
+                ...styles.message,
+                alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
+                background:
+                  msg.role === "user" ? "#dcf8c6" : "#ffffff"
+              }}
+            >
+              {msg.content}
+            </div>
+          ))}
+        </div>
+
+        <div style={styles.inputArea}>
+          <input
+            style={styles.input}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type a message"
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          />
+
+          <button style={styles.button} onClick={handleSend}>
+            Send
+          </button>
+        </div>
+
       </div>
     </div>
   );
 }
 
 const styles = {
-  container: {
+  wrapper: {
     height: "100vh",
     display: "flex",
-    flexDirection: "column",
-    background: "#ece5dd"
+    justifyContent: "center",
+    alignItems: "center",
+    background: "#d1d7db"
   },
-  chatBox: {
+  chatContainer: {
+    width: "400px",
+    height: "90vh",
+    display: "flex",
+    flexDirection: "column",
+    background: "#ece5dd",
+    borderRadius: "10px",
+    overflow: "hidden",
+    boxShadow: "0 0 10px rgba(0,0,0,0.2)"
+  },
+  header: {
+    background: "#075e54",
+    color: "white",
+    padding: "15px",
+    fontWeight: "bold"
+  },
+  chatArea: {
     flex: 1,
     padding: "10px",
     display: "flex",
@@ -93,7 +121,7 @@ const styles = {
     padding: "10px",
     margin: "5px",
     borderRadius: "10px",
-    boxShadow: "0 1px 2px rgba(0,0,0,0.2)"
+    fontSize: "14px"
   },
   inputArea: {
     display: "flex",
@@ -108,11 +136,12 @@ const styles = {
   },
   button: {
     marginLeft: "10px",
-    padding: "10px 20px",
+    padding: "10px 15px",
     borderRadius: "20px",
     background: "#25D366",
     color: "white",
-    border: "none"
+    border: "none",
+    cursor: "pointer"
   }
 };
 
