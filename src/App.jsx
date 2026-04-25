@@ -5,8 +5,12 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 function App() {
   const [messages, setMessages] = useState([
-    { role: "assistant", content: "Hello! How can I help you?" }
+    {
+      role: "assistant",
+      content: "Hello! I'm your AI assistant. How can I help you?"
+    }
   ]);
+
   const [input, setInput] = useState("");
 
   const handleSend = async () => {
@@ -28,12 +32,10 @@ function App() {
 
       setMessages(prev => [...prev, botMsg]);
 
-    } catch (error) {
-      console.error(error);
-
+    } catch (err) {
       setMessages(prev => [
         ...prev,
-        { role: "assistant", content: "Server error. Try again." }
+        { role: "assistant", content: "Error connecting to server" }
       ]);
     }
 
@@ -41,29 +43,77 @@ function App() {
   };
 
   return (
-    <div style={{ padding: 20, maxWidth: 600, margin: "auto" }}>
-      <h2>Chat App</h2>
-
-      <div style={{ border: "1px solid #ccc", padding: 10, minHeight: 300 }}>
+    <div style={styles.container}>
+      <div style={styles.chatBox}>
         {messages.map((msg, i) => (
-          <div key={i}>
-            <b>{msg.role}:</b> {msg.content}
+          <div
+            key={i}
+            style={{
+              ...styles.message,
+              alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
+              background: msg.role === "user" ? "#DCF8C6" : "#fff"
+            }}
+          >
+            {msg.content}
           </div>
         ))}
       </div>
 
-      <input
-        style={{ width: "80%", padding: 10 }}
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Type message"
-      />
-
-      <button onClick={handleSend} style={{ padding: 10 }}>
-        Send
-      </button>
+      <div style={styles.inputArea}>
+        <input
+          style={styles.input}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type a message"
+        />
+        <button style={styles.button} onClick={handleSend}>
+          Send
+        </button>
+      </div>
     </div>
   );
 }
+
+const styles = {
+  container: {
+    height: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    background: "#ece5dd"
+  },
+  chatBox: {
+    flex: 1,
+    padding: "10px",
+    display: "flex",
+    flexDirection: "column",
+    overflowY: "auto"
+  },
+  message: {
+    maxWidth: "70%",
+    padding: "10px",
+    margin: "5px",
+    borderRadius: "10px",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.2)"
+  },
+  inputArea: {
+    display: "flex",
+    padding: "10px",
+    background: "#f0f0f0"
+  },
+  input: {
+    flex: 1,
+    padding: "10px",
+    borderRadius: "20px",
+    border: "1px solid #ccc"
+  },
+  button: {
+    marginLeft: "10px",
+    padding: "10px 20px",
+    borderRadius: "20px",
+    background: "#25D366",
+    color: "white",
+    border: "none"
+  }
+};
 
 export default App;
