@@ -7,7 +7,7 @@ import {
 import './index.css';
 
 const SESSION_ID = "session_" + Math.random().toString(36).substring(7);
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3005/api";
+const API_URL = import.meta.env.VITE_API_URL;
 
 function App() {
   const [messages, setMessages] = useState([
@@ -34,7 +34,6 @@ function App() {
   const handleSend = async (text = inputValue) => {
     if (!text.trim() && !uploadPreview) return;
 
-    // What the user sees in the chat bubble
     const displayMessage = uploadPreview
       ? `📎 ${uploadPreview.fileName}${text.trim() ? `\n${text}` : ''}`
       : text;
@@ -51,33 +50,27 @@ function App() {
     try {
       let finalMessage = text.trim() || '';
 
+      // 🔥 FIXED: correct upload endpoint
       if (currentUpload && currentUpload.file) {
-        // Send file to backend OCR simulator
         const formData = new FormData();
         formData.append('file', currentUpload.file);
-        const uploadRes = await axios.post(`${API_URL}/upload`, formData);
+
+        const uploadRes = await axios.post(`${API_URL}/api/upload`, formData);
         const ocrData = uploadRes.data.data;
 
-        // Build a crystal-clear structured prompt for the LLM
         finalMessage = `The user has uploaded an external prescription/report file named "${currentUpload.fileName}".
 
-This file was scanned and the following data was extracted via OCR:
-- Right Eye Power: ${ocrData.right_eye ?? 'N/A'}
-- Left Eye Power: ${ocrData.left_eye ?? 'N/A'}
+Extracted data:
+- Right Eye: ${ocrData.right_eye ?? 'N/A'}
+- Left Eye: ${ocrData.left_eye ?? 'N/A'}
 - Axis: ${ocrData.axis ?? 'N/A'}
-- Clinical Note: ${ocrData.note ?? 'N/A'}
+- Note: ${ocrData.note ?? 'N/A'}
 
-IMPORTANT: This prescription belongs to the uploaded file and may NOT be Aarav's prescription. 
-Please:
-1. Describe what this prescription means in simple language for a parent.
-2. Explain each field (right eye, left eye, axis, note) clearly.
-3. Classify the severity (mild, moderate, or high myopia).
-4. If clinically useful, compare with Aarav's profile (but only as a reference, not as the subject).
-5. End with your standard identity statement.
-${text.trim() ? `\nAdditional note from user: "${text.trim()}"` : ''}`;
+Explain this in simple language for a parent.`;
       }
 
-      const response = await axios.post(`${API_URL}/chat`, {
+      // 🔥 FIXED: correct chat endpoint
+      const response = await axios.post(`${API_URL}/api/chat`, {
         message: finalMessage,
         sessionId: SESSION_ID,
       });
@@ -87,11 +80,13 @@ ${text.trim() ? `\nAdditional note from user: "${text.trim()}"` : ''}`;
         content: response.data.reply,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }]);
+
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error:', error);
+
       setMessages([...newMessages, {
         role: 'assistant',
-        content: 'Sorry, I encountered an error processing your request. Please try again.',
+        content: 'Server error. Please try again.',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }]);
     } finally {
@@ -100,9 +95,7 @@ ${text.trim() ? `\nAdditional note from user: "${text.trim()}"` : ''}`;
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSend();
-    }
+    if (e.key === 'Enter') handleSend();
   };
 
   const handleQuickAction = (action) => {
@@ -126,21 +119,18 @@ ${text.trim() ? `\nAdditional note from user: "${text.trim()}"` : ''}`;
 
   const formatMessageContent = (content) => {
     const lines = content.split('\n');
-    return lines.map((line, index) => {
-      const formattedLine = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      return (
-        <span key={index}>
-          <span dangerouslySetInnerHTML={{ __html: formattedLine }} />
-          {index < lines.length - 1 && <br />}
-        </span>
-      );
-    });
+    return lines.map((line, index) => (
+      <span key={index}>
+        {line}
+        {index < lines.length - 1 && <br />}
+      </span>
+    ));
   };
 
   return (
     <div className="app-container">
       <div className="chat-wrapper">
-        {/* Header (Android WhatsApp Style) */}
+
         <div className="chat-header">
           <div className="header-left">
             <button className="back-btn"><ArrowLeft size={24} /></button>
@@ -152,14 +142,8 @@ ${text.trim() ? `\nAdditional note from user: "${text.trim()}"` : ''}`;
               <p>online</p>
             </div>
           </div>
-          <div className="header-right">
-            <button className="icon-btn"><Video size={20} fill="currentColor" /></button>
-            <button className="icon-btn"><Phone size={20} fill="currentColor" /></button>
-            <button className="icon-btn"><MoreVertical size={20} fill="currentColor" /></button>
-          </div>
         </div>
 
-        {/* Messages */}
         <div className="messages-container">
           {messages.map((msg, idx) => (
             <div key={idx} className={`message-row ${msg.role}`}>
@@ -176,80 +160,34 @@ ${text.trim() ? `\nAdditional note from user: "${text.trim()}"` : ''}`;
               </div>
             </div>
           ))}
-          
-          {isTyping && (
-            <div className="message-row assistant">
-              <div className="message-bubble">
-                <div className="typing-indicator">
-                  <div className="typing-dot"></div>
-                  <div className="typing-dot"></div>
-                  <div className="typing-dot"></div>
-                </div>
-              </div>
-            </div>
-          )}
+
+          {isTyping && <div>Typing...</div>}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* File Preview */}
-        {uploadPreview && (
-          <div style={{ padding: '0 10px', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ background: '#fff', borderRadius: '8px', padding: '10px', width: '100%', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Paperclip size={20} color="var(--wa-text-secondary)" />
-              <div style={{ flex: 1, fontSize: '13px' }}>{uploadPreview.fileName}</div>
-              <button onClick={() => setUploadPreview(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'red' }}>✕</button>
-            </div>
-          </div>
-        )}
-
-        {/* Quick Actions (as suggestion chips) */}
-        {!inputValue && !uploadPreview && (
-          <div className="quick-actions">
-            <button className="action-btn" onClick={() => handleQuickAction("Upload Prescription")}>📄 Upload Prescription</button>
-            <button className="action-btn" onClick={() => handleQuickAction("When is my next follow-up?")}>📅 Next Follow-up</button>
-            <button className="action-btn" onClick={() => handleQuickAction("What is my progress?")}>📊 My Progress</button>
-          </div>
-        )}
-
-        {/* Input Area */}
         <div className="input-area-wrapper">
           <input 
             type="file" 
             ref={fileInputRef} 
             onChange={handleFileUpload} 
             style={{ display: 'none' }} 
-            accept="application/pdf,image/*"
           />
-          
-          <div className="input-container">
-            <div className="input-icon-left">
-              <Smile size={24} />
-            </div>
-            <input
-              type="text"
-              placeholder="Message"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-            />
-            <div className="input-icon-right" onClick={triggerFileInput}>
-              <Paperclip size={20} style={{ transform: 'rotate(45deg)' }} />
-            </div>
-            {!inputValue && (
-              <div className="input-icon-right">
-                <Camera size={20} />
-              </div>
-            )}
-          </div>
-          
-          <div className="send-btn-container" onClick={() => handleSend()}>
-            {(inputValue || uploadPreview) ? (
-              <Send size={20} style={{ marginLeft: '4px' }} />
-            ) : (
-              <Mic size={20} />
-            )}
-          </div>
+
+          <input
+            type="text"
+            placeholder="Message"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyPress={handleKeyPress}
+          />
+
+          <button onClick={triggerFileInput}>📎</button>
+
+          <button onClick={() => handleSend()}>
+            {(inputValue || uploadPreview) ? <Send size={20} /> : <Mic size={20} />}
+          </button>
         </div>
+
       </div>
     </div>
   );
