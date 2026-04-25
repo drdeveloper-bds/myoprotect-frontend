@@ -12,26 +12,34 @@ function App() {
   ]);
 
   const [input, setInput] = useState("");
-  const handleUpload = async (file) => {
-  const formData = new FormData();
-  formData.append("file", file);
 
-  try {
-    const res = await axios.post(`${API_URL}/api/upload`, formData);
+  const handleSend = async () => {
+    if (!input.trim()) return;
 
-    setMessages(prev => [
-      ...prev,
-      {
+    const userMsg = { role: "user", content: input };
+    setMessages(prev => [...prev, userMsg]);
+
+    try {
+      const res = await axios.post(`${API_URL}/api/chat`, {
+        message: input
+      });
+
+      const botMsg = {
         role: "assistant",
-        content: "📄 Document uploaded\n\n" + res.data.summary
-      }
-    ]);
+        content: res.data.reply
+      };
 
-  } catch (err) {
-    console.error(err);
-    alert("Upload failed");
-  }
-};
+      setMessages(prev => [...prev, botMsg]);
+
+    } catch (err) {
+      setMessages(prev => [
+        ...prev,
+        { role: "assistant", content: "Server error" }
+      ]);
+    }
+
+    setInput("");
+  };
 
   return (
     <div style={styles.wrapper}>
@@ -48,8 +56,7 @@ function App() {
               style={{
                 ...styles.message,
                 alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-                background:
-                  msg.role === "user" ? "#dcf8c6" : "#ffffff"
+                background: msg.role === "user" ? "#dcf8c6" : "#fff"
               }}
             >
               {msg.content}
@@ -58,28 +65,21 @@ function App() {
         </div>
 
         <div style={styles.inputArea}>
+          <input
+            style={styles.input}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type a message"
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          />
 
-  {/* 📄 Upload Button */}
-  <input
-    type="file"
-    accept="application/pdf"
-    onChange={(e) => handleUpload(e.target.files[0])}
-  />
+          <button style={styles.button} onClick={handleSend}>
+            Send
+          </button>
+        </div>
 
-  {/* Chat Input */}
-  <input
-    style={styles.input}
-    value={input}
-    onChange={(e) => setInput(e.target.value)}
-    placeholder="Type a message"
-    onKeyDown={(e) => e.key === "Enter" && handleSend()}
-  />
-
-  <button style={styles.button} onClick={handleSend}>
-    Send
-  </button>
-
-</div>
+      </div>
+    </div>
   );
 }
 
